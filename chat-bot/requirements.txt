@@ -1,0 +1,7 @@
+aioredis
+motor
+git+https://github.com/ataalik/aiomeasures.git
+BeautifulSoup4
+raven
+raven_aiohttp
+youtube-dl

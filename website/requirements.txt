@@ -1,0 +1,9 @@
+flask
+requests_oauthlib
+redis
+gunicorn
+gevent
+pymongo
+paypalrestsdk
+setproctitle
+git+https://github.com/Mee6/mee6-py.git
