@@ -31,6 +31,14 @@
 						<div class="well well-sm">
 							In order to avoid people flooding the <strong>!rank</strong> command, you can set a cooldown in seconds.
 						</div>
+
+						<label class="control-label" for="xp_cooldown"> XP cooldown</label>
+						<input class="form-control input-lg" name="xp_cooldown" value="{% if xp_cooldown is defined %}{{xp_cooldown}}{%else%}10{%endif%}" ype="text" id="xp_cooldown">
+						<div class="well well-sm">
+							Time, in seconds, that has to pass between messages for user to get xp.
+						</div>
+
+
 						<label class="control-label" for="banned_roles">Banned Roles</label>
 						<input type="text" data-role="tagsinput" name="banned_roles" class="banned_roles"/><br />
 						<div class="well well-sm">

@@ -7,7 +7,7 @@ import asyncio
 log = logging.getLogger('discord')
 
 MEE6_COLOR = int('008cba', 16)
-MEE6_ICON = 'https://discordapp.com/api/guilds/159962941502783488/icons/e66a77aee769b25339ee08412542556a.jpg'
+MEE6_ICON = 'https://discordapp.com/api/guilds/159962941502783488/icons/e66a77aee769b25339ee08412542556a.jpg' #TODO Get from env maybe? 
 
 def check_add_role_perm(member, role, mee6):
     permissions = mee6.server_permissions
@@ -46,6 +46,7 @@ class Levels(Plugin):
              description="Get a link to the server leaderboard",
              banned_roles="banned_roles")
     async def levels(self, message, args):
+        #TODO Get this url from env
         url = "<http://mee6.xyz/levels/" + message.server.id + ">"
         response = "Go check **" + message.server.name + "**'s leaderboard: "
         response += url + " :wink: "
@@ -172,7 +173,9 @@ class Levels(Plugin):
                               player.avatar)
 
         # Is the player good to go ?
+        xp_cooldown = await storage.get('xp_cooldown')
         check = await storage.get('player:{}:check'.format(player.id))
+
         if check:
             return
 
@@ -188,8 +191,11 @@ class Levels(Plugin):
 
         # Give random xp between 5 and 10
         await storage.incrby('player:{}:xp'.format(player.id), randint(15, 25))
-        # Block the player for 60 sec (that's 1 min btw...)
-        await storage.set('player:{}:check'.format(player.id), '1', expire=60)
+
+        # Block the player for xp_cooldown secs, pass if 0 secs
+        if int(xp_cooldown) != 0:
+            await storage.set('player:{}:check'.format(player.id), '1', expire=int(xp_cooldown))
+
         # Get the new player xp
         player_xp = int(await storage.get('player:{}:xp'.format(player.id)))
         # Comparing the level before and after

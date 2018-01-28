@@ -1218,6 +1218,7 @@ def plugin_levels(server_id):
         guild_roles
     ))
     cooldown = db.get('Levels.{}:cooldown'.format(server_id)) or 0
+    xp_cooldown = db.get('Levels.{}:xp_cooldown'.format(server_id)) or 10
     return {
         'announcement': announcement,
         'announcement_enabled': announcement_enabled,
@@ -1225,7 +1226,8 @@ def plugin_levels(server_id):
         'guild_roles': guild_roles,
         'reward_roles': reward_roles,
         'cooldown': cooldown,
-        'whisp': whisp
+        'whisp': whisp,
+        'xp_cooldown': xp_cooldown
     }
 
 
@@ -1240,6 +1242,7 @@ def update_levels(server_id):
     enable = request.form.get('enable')
     whisp = request.form.get('whisp')
     cooldown = request.form.get('cooldown')
+    xp_cooldown = request.form.get('xp_cooldown')
 
     for k, v in request.form.items():
         if k.startswith('rolereward_'):
@@ -1260,6 +1263,7 @@ def update_levels(server_id):
     else:
         db.set('Levels.{}:announcement'.format(server_id), announcement)
         db.set('Levels.{}:cooldown'.format(server_id), cooldown)
+        db.set('Levels.{}:xp_cooldown'.format(server_id), xp_cooldown)
 
         db.delete('Levels.{}:banned_roles'.format(server_id))
         if len(banned_roles) > 0:
@@ -1818,7 +1822,7 @@ def update_moderator(server_id):
 
 
 @app.route('/dashboard/<int:server_id>/music')
-@plugin_page('Music', buff="music")
+@plugin_page('Music')
 def plugin_music(server_id):
     db_allowed_roles = db.smembers('Music.{}:allowed_roles'.format(server_id))\
         or []

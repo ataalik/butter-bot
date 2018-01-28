@@ -15,11 +15,11 @@ log = logging.getLogger('discord')
 
 
 class Mee6(discord.Client):
-    """A modified discord.Client class
+    '''A modified discord.Client class
 
     This mod dispatches most events to the different plugins.
 
-    """
+    '''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,27 +43,28 @@ class Mee6(discord.Client):
         console_coro = self.loop.create_server(make_console(self),
                                                '127.0.0.1', 8000)
         self.loop.run_until_complete(console_coro)
-        # These are related to music player I think. Disabled currently since I couldn't get it working properly.  self.loop.create_task(self.connect_schwifty())
+        # These are related to music player I think. Disabled currently since I couldn't get it working properly.
+        #self.loop.create_task(self.connect_schwifty())
         self.loop.run_until_complete(self.start(*args))
 
-    '''
-    These are related to music player I think. Disabled currently since I couldn't get it working properly.
-    async def connect_schwifty(self):
-        self.schwifty = await SchwiftyWebsocket.create(
-            self.shard,
-            self
-        )
 
-        while not self.is_closed:
-            try:
-                await self.schwifty.poll_event()
-            except (ConnectionClosed, asyncio.TimeoutError) as e:
-                await asyncio.sleep(1)
-                self.schwifty = await SchwiftyWebsocket.create(
-                    self.shard,
-                    self
-                )
-    '''
+    # These are related to music player I think. Disabled currently since I couldn't get it working properly.
+    # async def connect_schwifty(self):
+    #     self.schwifty = await SchwiftyWebsocket.create(
+    #         self.shard,
+    #         self
+    #     )
+    #
+    #     while not self.is_closed:
+    #         try:
+    #             await self.schwifty.poll_event()
+    #         except (ConnectionClosed, asyncio.TimeoutError) as e:
+    #             await asyncio.sleep(1)
+    #             self.schwifty = await SchwiftyWebsocket.create(
+    #                 self.shard,
+    #                 self
+    #             )
+
     async def console(reader, writer):
         loop = asyncio.get_event_loop()
         data = await reader.read(100)
@@ -73,6 +74,8 @@ class Mee6(discord.Client):
         await writer.drain()
         writer.close()
 
+
+    #These two functions log the bots status to some discord servers webhook. TODO need to adjust that.
     def send_monitoring_message(self, msg):
         self.loop.create_task(self._send_monitoring_message(msg))
 
@@ -87,13 +90,63 @@ class Mee6(discord.Client):
             async with session.post(url, headers=headers, data=data) as d:
                 pass
 
+
+    async def on_voice_state_update(self, member):
+        #TODO stats?
+        if str(member.id) != self.user.id:
+            return
+
+        guild_id = member.guild_id
+        self.voice_sessions_ids[guild_id] = member.server.id
+
+    #TODO This function's parameters have been changed on the new discord.py version. It is no longer sent as parsed.
+
+    # async def on_socket_raw_receive(self, payload):
+    #     tags = {'op': str(payload['op']),
+    #             't': payload.get('t') or "NONE"}
+    #     self.stats.incr('discord.event', tags=tags)
+    #
+    #     if not payload['op'] == 0:
+    #         return
+    #
+    #
+    #     if payload['t'] == 'VOICE_SERVER_UPDATE':
+    #         d = payload['d']
+    #         guild_id = d['guild_id']
+    #         d['session_id'] = self.voice_sessions_ids.get(guild_id)
+    #         if d.get('endpoint'):
+    #             await self.schwifty.voice_update(d)
+    #
+    #     if payload['t'] == 'READY':
+    #         if not hasattr(self, 'shard_id'):
+    #             return
+    #
+    #         msg = "**[READY]** shard {}/{}".format(
+    #             self.shard_id,
+    #             self.shard_count
+    #         )
+    #         self.send_monitoring_message(msg)
+    #
+    #     if payload['t'] == 'RESUMED':
+    #         if not hasattr(self, 'shard_id'):
+    #             return
+    #
+    #         msg = "**[RESUMED]** shard {}/{}".format(self.shard_id,
+    #                                                  self.shard_count)
+    #         self.send_monitoring_message(msg)
+
+    async def dispatch_schwifty_event(self, t, d):
+        listener_name = 'on_schwifty_' + t.lower()
+        listener = getattr(self, listener_name, None)
+        if listener:
+            await listener(**d)
+
+
     async def on_ready(self):
-        """Called when the bot is ready.
-
-        Connects to the database
-        Dispatched all the ready events
-
-        """
+        '''
+            Called when the bot is ready.Connects to the database
+            Dispatched all the ready events
+        '''
         log.info('Connected to the database')
 
         await self.add_all_servers()
@@ -101,7 +154,9 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_ready())
 
     async def add_all_servers(self):
-        """Syncing all the servers to the DB"""
+        '''
+            Syncing all the servers to the DB
+        '''
         log.debug('Syncing servers and db')
         for server in self.servers:
             self.stats.set('mee6.servers', server.id)
@@ -119,8 +174,9 @@ class Mee6(discord.Client):
                 )
 
     async def on_server_join(self, server):
-        """Called when joining a new server"""
-
+        '''
+            Called when joining a new server
+        '''
         self.stats.set('mee6.servers', server.id)
         self.stats.incr('mee6.server_join')
         await self.db.redis.sadd('servers', server.id)
@@ -142,11 +198,10 @@ class Mee6(discord.Client):
                 self.loop.create_task(plugin.on_server_join(server))
 
     async def on_server_remove(self, server):
-        """Called when leaving or kicked from a server
+        '''
+            Called when leaving or kicked from a server Removes the server from the db.
+        '''
 
-        Removes the server from the db.
-
-        """
         log.info('Leaving {} server : {} !'.format(
             server.owner.name,
             server.name
@@ -263,16 +318,16 @@ class Mee6(discord.Client):
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_server_update(before, after))
 
-    """These are related to music player I think. Disabled currently since I couldn't get it working properly.
-    async def on_schwifty_playing(self, guild_id, url):
-        server = discord.Object(id=str(guild_id))
-        enabled_plugins = await self.get_plugins(server)
-        for plugin in enabled_plugins:
-            self.loop.create_task(plugin.on_schwifty_playing(guild_id, url))
-
-    async def on_schwifty_finished_playing(self, guild_id):
-        server = discord.Object(id=str(guild_id))
-        enabled_plugins = await self.get_plugins(server)
-        for plugin in enabled_plugins:
-            self.loop.create_task(plugin.on_schwifty_finished_playing(guild_id))
-    """
+    # These are related to music player I think. Disabled currently since I couldn't get it working properly.
+    # async def on_schwifty_playing(self, guild_id, url):
+    #     server = discord.Object(id=str(guild_id))
+    #     enabled_plugins = await self.get_plugins(server)
+    #     for plugin in enabled_plugins:
+    #         self.loop.create_task(plugin.on_schwifty_playing(guild_id, url))
+    #
+    # async def on_schwifty_finished_playing(self, guild_id):
+    #     server = discord.Object(id=str(guild_id))
+    #     enabled_plugins = await self.get_plugins(server)
+    #     for plugin in enabled_plugins:
+    #         self.loop.create_task(plugin.on_schwifty_finished_playing(guild_id))
+    #
